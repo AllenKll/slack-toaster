@@ -7,13 +7,18 @@ from PyQt5.QtGui import QMouseEvent
 from PyQt5 import QtCore
 from PyQt5.QtCore import qDebug, QSize
 from random import randint
+import webbrowser
 
 trueout = sys.stdout
 
 TOAST_WIDTH = 300
 TOAST_HEIGHT = 100
+TOAST_TIMEOUT = 6000
+ccc = 1
 
 class Toast(QWidget):
+    link = "slack://";
+    timer = None;
 
     def __init__(self, title, body, link):
         super().__init__();
@@ -26,9 +31,11 @@ class Toast(QWidget):
         label = QLabel(self)
         label.setText(body)
         label.resize(self.size())
+        label.setMargin(10)
         label.show()
-        self.startTimer(5000);
-        self.move(-TOAST_WIDTH, -TOAST_HEIGHT) # render off screen for geometry calcs to kick in.
+        self.link = link
+        self.timer = self.startTimer(TOAST_TIMEOUT);
+        self.move(-TOAST_WIDTH*2, -TOAST_HEIGHT*2) # render off screen for geometry calcs to kick in.
         self.show()
 
     def sizeHint(self):
@@ -37,24 +44,18 @@ class Toast(QWidget):
     def timedOut(self, event):
         self.hide()
         self.close()
-        self.killTimer(event.timerId())
+        self.killTimer(self.timer)
 
-
-    def clicked(event):
-        sys.exit()   
-
-# def timedOut(event):
-#    if len(widgetList) > 0:
-#        p = widgetList.pop(0);
-#        p.hide()
-#        p.close()
+    def clicked(self, event):
+        webbrowser.open(self.link) 
+        self.timedOut(None)
 
 
 class screenManager():
     maxRight = 0
     maxBottom = 0;
     newLoc = (0,0);
-    widgetList = [];
+    toastList = [];
 
     def __init__ (self, desktop):
         self.maxRight = desktop.availableGeometry().right()
@@ -63,12 +64,26 @@ class screenManager():
 
     def showBox( self, title, body, link):
         p = Toast(title, body, link)
- 
-        # move into position      
-        p.move(self.newLoc[0] - (p.frameGeometry().width() - TOAST_WIDTH), self.newLoc[1] - (p.frameGeometry().height() - TOAST_HEIGHT))
-        self.widgetList.append(p)
+        self.toastList.append(p)
+
+        # clean up toast list
+        self.toastList = [ x for x in self.toastList if x.isVisible()]
+
+        # Move all toasts to proper position
+        y = self.newLoc[1] - (p.frameGeometry().height() - TOAST_HEIGHT)
+        x = self.newLoc[0] - (p.frameGeometry().width() - TOAST_WIDTH)
+        for i,toast in enumerate(reversed(self.toastList)):
+            if i > 4:
+                break;
+
+            toast.move(x, y)
+            y = y - p.frameGeometry().height() * 1.1
 
 
+def testBox(x):
+    global ccc
+    sm.showBox("Title", str(ccc), "slack://channel?id=D5YNX8K47&message=1498508795972473&team=T5XJYNHNK")
+    ccc = ccc + 1
 
 if __name__ == '__main__':
 
@@ -81,7 +96,7 @@ if __name__ == '__main__':
     w.resize(300, 300)
     w.move(0, 0)
     w.setWindowTitle('Test form')
-    w.mousePressEvent = lambda x: sm.showBox("Title", "Body", 0)
+    w.mousePressEvent = testBox
     w.show()
 
     sys.exit(app.exec_())
