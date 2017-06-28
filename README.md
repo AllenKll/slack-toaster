@@ -1,4 +1,4 @@
-# toaster
+# slack-toaster
 Notification application for Slack.
 
 Requires PyQt5 and slackClient:
